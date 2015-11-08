@@ -43,12 +43,14 @@ public class BufferMain {
 			System.out.println("----------------------装入数据执行 flip() -》取出一个数据-->flip--------------");
 			System.out.println("Position : " + cb.position());
 			System.out.println("Limit : " + cb.limit());
+			System.out.println("flip之后的数据 ： " + cb);
 			
 			cb.clear();
 			
 			System.out.println("----------------------装入数据执行 flip() -》取出一个数据-->flip--->clear--------------");
 			System.out.println("Position : " + cb.position());
 			System.out.println("Limit : " + cb.limit());
+			System.out.println("clear之后的数据 ： " + cb);
 			
 			System.out.println("----------------------取得下标为2的数据--------------");
 			System.out.println("取 [position=2]的数据 ： " + cb.get(2));
