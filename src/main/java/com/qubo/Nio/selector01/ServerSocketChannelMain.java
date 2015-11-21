@@ -1,9 +1,11 @@
 package com.qubo.Nio.selector01;
 
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -19,6 +21,15 @@ public class ServerSocketChannelMain {
 	
 	// 所有的 一切 事情 ，交由 教导处 代理 分配 执行
 	public static Selector selector;
+	
+	// 缓冲区 大小
+	public static int BLOCK = 4096;
+	
+	// 接收 数据的  缓冲区
+	public static ByteBuffer receiver = ByteBuffer.allocate(BLOCK);
+	//发送的 数据 缓冲区
+	public static ByteBuffer send = ByteBuffer.allocate(BLOCK);
+			
 
 	public static void main(String[] args)  throws Exception{
 
@@ -61,9 +72,10 @@ public class ServerSocketChannelMain {
 	 */
 	public static void listen() throws Exception{
 		
+		System.out.println("教导处 开始 上班 ");
 		// 轮询 
 		 while(true){
-			 	System.out.println("教导处 开始 上班 ");
+			 	System.out.println("教导处---等待---处理事情..........  ");
 			 	// 看看 教导处 里面 是否 有什么 事情 要处理
 			   // 在没有事情 处理的时候。这个地方 就阻塞住了。
 			 	int num = selector.select();
@@ -94,30 +106,80 @@ public class ServerSocketChannelMain {
 		 }
 	}
 	
-	public static void handler(SelectionKey key){
+	public static void handler(SelectionKey key) throws Exception{
 		
 		if(key.isAcceptable()){
 				// Accept是接受的 意思。这种情况，说明 是 老师 带领 新生 入学。
-				System.out.println("新生 加入");
+				System.out.println("---------新生 加入-----------");
 				newClientAdd(key);
 		}
 		else if(key.isReadable()){
 				// 说明 学生 像老师 提出 问题了。
-			System.out.println("新生 提出问题");
+			System.out.println("--------------新生 提出问题--------------");
+			readClientMsg(key);
 		}
 		else if(key.isWritable()){
 			   //  老师 解答 问题
-			System.out.println("老师 解答问题 ");
+			System.out.println("--------------老师 解答问题-------------- ");
+			writeClientMsg(key);
 		}
 			
 	}
 	
+	/**
+	 * 添加 新客户端
+	 */
 	public static void newClientAdd(SelectionKey key) throws Exception{
 		
 			// 先找到  学校 和老师 
 			ServerSocketChannel ssc = (ServerSocketChannel)key.channel();
 			
-			ssc.socket();
+			// 接受 一个 新的学生
+			SocketChannel client = ssc.accept();// 这块是非阻塞模式，也就是说，如果有事情，就处理。没有就返回
+			client.configureBlocking(false);
+			
+			// 
+			client.register(selector, SelectionKey.OP_READ);
+			
+			System.out.println("--------------新生注册完毕---------------------");
 	}
+	
+	/**
+	 * 读取 客户端 信息
+	 */
+	public static void readClientMsg(SelectionKey key) throws Exception{
+		
+			SocketChannel client = (SocketChannel)key.channel();
+			
+			receiver.clear();
+			
+			int temp = 0;
+			while((temp = client.read(receiver))!=-1){
+					
+				receiver.flip();
+				System.out.print("client :" + new String(receiver.array()));
+				receiver.clear();
+			}
+			
+			// 服务器 读取完毕，通知 服务器 你可以 回复了
+			client.register(selector, SelectionKey.OP_WRITE);
+			//writeClientMsg(key);
+	}
+	
+	/**
+	 *服务器 回复 客户端
+	 */
+	public static void writeClientMsg(SelectionKey key) throws Exception{
+		
+			SocketChannel client = (SocketChannel)key.channel();
+			
+			send.clear();
+			send.put("客户端你好。我是服务器".getBytes());
+			send.flip();
+			client.write(send);
+			send.clear();
+			
+	}
+	
 	
 }
